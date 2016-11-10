@@ -18,9 +18,15 @@ module Formatter
     ) where
 
 import Data.String
+import Data.ByteString
+import qualified Data.ByteString.Lazy as L
+import Data.Text
 
 class (Monoid s, IsString s) => FormatterString s where
 instance FormatterString String
+instance FormatterString ByteString
+instance FormatterString L.ByteString
+instance FormatterString Text
 
 data Alignment = LeftAlign | CenterAlign | RightAlign
 class Formatter f where
