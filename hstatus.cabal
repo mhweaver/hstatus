@@ -15,7 +15,11 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib, Formatter, LemonbarFormatter
+  exposed-modules:     Lib
+                     , Formatter
+                     , LemonbarFormatter
+                     , Segment
+                     , StdinSegment
   build-depends:       base >= 4.7 && < 5
                      , bytestring
                      , text
@@ -27,6 +31,7 @@ executable hstatus
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , hstatus
+                     , bytestring
   default-language:    Haskell2010
 
 test-suite hstatus-test
