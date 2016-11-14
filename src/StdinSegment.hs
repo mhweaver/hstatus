@@ -12,8 +12,8 @@ import Control.Concurrent
 import Data.ByteString.Char8
 
 data StdinSegment = StdinSeg { getChan :: MVar ByteString
-                             , die :: MVar Bool }
-newStdinSegment :: MVar ByteString -> MVar Bool -> StdinSegment
+                             , die :: MVar () }
+newStdinSegment :: MVar ByteString -> MVar () -> StdinSegment
 newStdinSegment = StdinSeg
 
 instance Segment StdinSegment where
@@ -22,7 +22,7 @@ instance Segment StdinSegment where
 stdinLoop :: StdinSegment -> IO ()
 stdinLoop seg = do
     eof <- isEOF
-    when eof $ putMVar (die seg) True
+    when eof $ putMVar (die seg) ()
     line <- getLine
     putMVar (getChan seg) line
     stdinLoop seg

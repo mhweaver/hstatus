@@ -1,34 +1,39 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Lib
 import Control.Monad
 import Control.Concurrent
 import Data.ByteString.Char8
-import LemonbarFormatter
+import Segment
 import StdinSegment
+import TimeSegment
 import Prelude hiding (putStrLn, concat)
 
 main :: IO ()
 main = do
-    let baseFormatter = newLemonbarFormatter "-"
-    die        <- newEmptyMVar -- Anything getting put in this MVar causes the program to terminate
     outChannel <- newEmptyMVar -- Updates do this MVar are printed to stdout
+    die        <- newEmptyMVar -- Semaphore to signal the main thread to terminate
+    wakeUp     <- newEmptyMVar -- Semaphore to signal the watcher thread to check for updates
 
     -- Create segments
     stdinChannel <- newEmptyMVar
+    timeChannel <- newEmptyMVar
     let stdinSeg = newStdinSegment stdinChannel die
+        timeSeg  = newTimeSegment timeChannel
 
-    let segments = [ stdinSeg ]
-    let channels = [ stdinChannel ]
+    let segments = [ segment stdinSeg
+                   , segment timeSeg
+                   ] :: [Seg]
+        channels = [ stdinChannel
+                   , timeChannel
+                   ]
 
     -- Fire up the segments
-    sequence_ $ fmap (forkIO . runSegment) segments
+    sequence_ $ forkIO . runSegment <$> segments
 
     -- Watch the channels for updates
-    wakeUp <- newEmptyMVar -- Signals the watcher thread to check for updates
     -- Set up watchers to notify the main watcher thread that something happened
-    sequence_ $ fmap (\chan -> forkIO $ forever (readMVar chan >> putMVar wakeUp True)) channels
+    sequence_ $ fmap (\chan -> forkIO $ forever (readMVar chan >> putMVar wakeUp ())) channels
     forkIO $ watchForUpdates (fmap (\seg -> (seg, "")) channels) outChannel wakeUp
 
     -- Watch the output channel and print to stdout
@@ -39,7 +44,7 @@ main = do
 
 watchForUpdates :: [(MVar ByteString, ByteString)] -- (segment output channel, prev output from channel)
                 -> MVar ByteString                 -- Output channel
-                -> MVar Bool                       -- Wake up semaphore
+                -> MVar ()                         -- Wake up semaphore
                 -> IO ()
 watchForUpdates channels outChannel wakeUp = do
     takeMVar wakeUp
