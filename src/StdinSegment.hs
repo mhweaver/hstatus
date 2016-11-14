@@ -1,6 +1,5 @@
 module StdinSegment
     ( StdinSegment
-    , runSegment
     , newStdinSegment
     ) where
 
@@ -13,11 +12,8 @@ import Data.ByteString.Char8
 
 data StdinSegment = StdinSeg { getChan :: MVar ByteString
                              , die :: MVar () }
-newStdinSegment :: MVar ByteString -> MVar () -> StdinSegment
-newStdinSegment = StdinSeg
-
-instance Segment StdinSegment where
-    runSegment = stdinLoop
+newStdinSegment :: MVar ByteString -> MVar () -> Segment
+newStdinSegment outChan dieChan = Segment . stdinLoop $ StdinSeg outChan dieChan
 
 stdinLoop :: StdinSegment -> IO ()
 stdinLoop seg = do

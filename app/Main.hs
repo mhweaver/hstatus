@@ -21,9 +21,9 @@ main = do
     let stdinSeg = newStdinSegment stdinChannel die
         timeSeg  = newTimeSegment timeChannel
 
-    let segments = [ segment stdinSeg
-                   , segment timeSeg
-                   ] :: [Seg]
+    let segments = [ stdinSeg
+                   , timeSeg
+                   ] :: [Segment]
         channels = [ stdinChannel
                    , timeChannel
                    ]

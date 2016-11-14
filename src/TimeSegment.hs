@@ -1,6 +1,5 @@
 module TimeSegment
     ( TimeSegment
-    , runSegment
     , newTimeSegment
     ) where
 
@@ -12,11 +11,8 @@ import Control.Monad
 import Data.Time
 
 data TimeSegment = TimeSegment { getChan :: MVar ByteString }
-newTimeSegment :: MVar ByteString -> TimeSegment
-newTimeSegment = TimeSegment
-
-instance Segment TimeSegment where
-    runSegment = timeSegLoop
+newTimeSegment :: MVar ByteString -> Segment
+newTimeSegment chan = Segment $ timeSegLoop $ TimeSegment chan
 
 timeSegLoop :: TimeSegment -> IO ()
 timeSegLoop seg = do
