@@ -4,9 +4,12 @@ module Main where
 import Control.Monad
 import Control.Concurrent
 import Data.ByteString.Char8
+import Formatter
+import LemonbarFormatter
 import Segment
 import StdinSegment
 import TimeSegment
+import DateSegment
 import Prelude hiding (putStrLn, concat)
 
 main :: IO ()
@@ -15,17 +18,22 @@ main = do
     die        <- newEmptyMVar -- Semaphore to signal the main thread to terminate
     wakeUp     <- newEmptyMVar -- Semaphore to signal the watcher thread to check for updates
 
+    let baseFormatter = newLemonbarFormatter
     -- Create segments
     stdinChannel <- newEmptyMVar
     timeChannel <- newEmptyMVar
-    let stdinSeg = newStdinSegment stdinChannel die
-        timeSeg  = newTimeSegment timeChannel
+    dateChannel <- newEmptyMVar
+    let stdinSeg = newStdinSegment stdinChannel die baseFormatter
+        timeSeg  = newTimeSegment timeChannel baseFormatter
+        dateSeg  = newDateSegment dateChannel baseFormatter
 
     let segments = [ stdinSeg
                    , timeSeg
+                   , dateSeg
                    ] :: [Segment]
         channels = [ stdinChannel
                    , timeChannel
+                   , dateChannel
                    ]
 
     -- Fire up the segments
@@ -53,8 +61,8 @@ watchForUpdates channels outChannel wakeUp = do
                                       return $ case maybeUpdate of
                                           Nothing -> (chan, oldValue)
                                           Just d -> (chan, d)) channels :: IO [(MVar ByteString, ByteString)]
-    let oldOutString = concat . fmap snd $ channels
-        outString    = concat . fmap snd $ updatedChannels
+    let oldOutString = intercalate "  " . fmap snd $ channels
+        outString    = intercalate "  " . fmap snd $ updatedChannels
     when (outString /= oldOutString) $ -- Only output if something changed
         putMVar outChannel outString
     watchForUpdates updatedChannels outChannel wakeUp

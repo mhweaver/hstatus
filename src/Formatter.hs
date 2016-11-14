@@ -15,31 +15,25 @@ module Formatter
     , bare
     , monitor
     , format
+    , Data.ByteString.Char8.pack
+    , Data.ByteString.Char8.getLine
     ) where
 
-import Data.String
-import Data.ByteString
-import qualified Data.ByteString.Lazy as L
-import Data.Text
+import Data.ByteString.Char8
 
-class (Monoid s, IsString s) => FormatterString s where
-instance FormatterString String
-instance FormatterString ByteString
-instance FormatterString L.ByteString
-instance FormatterString Text
-
+type FormatterString = ByteString
 data Alignment = LeftAlign | CenterAlign | RightAlign
 class Formatter f where
-    getDefaultColor :: FormatterString s => f s -> s
-    wrapFgColor     :: FormatterString s => s -> f s -> f s
-    wrapBgColor     :: FormatterString s => s -> f s -> f s
-    underlineColor  :: FormatterString s => s -> f s -> f s
-    underline       :: FormatterString s => f s -> f s
-    align           :: FormatterString s => Alignment -> f s -> f s
-    bold            :: FormatterString s => f s -> f s
-    appendInner     :: FormatterString s => s -> f s -> f s
-    prependInner    :: FormatterString s => s -> f s -> f s
-    bare            :: FormatterString s => f s -> f s
-    monitor         :: FormatterString s => s -> f s -> f s
-    format          :: FormatterString s => s -> f s -> s
+    getDefaultColor :: f -> FormatterString
+    wrapFgColor     :: FormatterString -> f -> f
+    wrapBgColor     :: FormatterString -> f -> f
+    underlineColor  :: FormatterString -> f -> f
+    underline       :: f -> f
+    align           :: Alignment -> f -> f
+    bold            :: f -> f
+    appendInner     :: FormatterString -> f -> f
+    prependInner    :: FormatterString -> f -> f
+    bare            :: f -> f
+    monitor         :: FormatterString -> f -> f
+    format          :: FormatterString -> f -> FormatterString
 

@@ -1,24 +1,21 @@
+{-# LANGUAGE OverloadedStrings #-}
 module TimeSegment
-    ( TimeSegment
-    , newTimeSegment
+    ( newTimeSegment
     ) where
 
 import Segment
 import Formatter
-import Data.ByteString.Char8
 import Control.Concurrent
-import Control.Monad
 import Data.Time
 
-data TimeSegment = TimeSegment { getChan :: MVar ByteString }
-newTimeSegment :: MVar ByteString -> Segment
-newTimeSegment chan = Segment $ timeSegLoop $ TimeSegment chan
+newTimeSegment :: Formatter f => MVar FormatterString -> f -> Segment
+newTimeSegment chan formatter = Segment $ timeSegLoop chan formatter
 
-timeSegLoop :: TimeSegment -> IO ()
-timeSegLoop seg = do
+timeSegLoop :: Formatter f => MVar FormatterString -> f -> IO ()
+timeSegLoop chan formatter = do
     timezone <- getCurrentTimeZone
     currTime <- getCurrentTime
     let formattedTime = pack $ formatTime defaultTimeLocale "%I:%M:%S %P" (utcToLocalTime timezone currTime)
-    putMVar (getChan seg) $ formattedTime
-    threadDelay $ 60 * 1000
-    timeSegLoop seg
+    putMVar chan $ format formattedTime formatter
+    threadDelay $ 1000 * 1000
+    timeSegLoop chan formatter

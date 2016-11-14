@@ -1,24 +1,21 @@
 module StdinSegment
-    ( StdinSegment
-    , newStdinSegment
+    ( newStdinSegment
     ) where
 
 import Prelude hiding (getLine)
-import System.IO ( isEOF )
+import System.IO (isEOF)
 import Segment
+import Formatter
 import Control.Monad
 import Control.Concurrent
-import Data.ByteString.Char8
 
-data StdinSegment = StdinSeg { getChan :: MVar ByteString
-                             , die :: MVar () }
-newStdinSegment :: MVar ByteString -> MVar () -> Segment
-newStdinSegment outChan dieChan = Segment . stdinLoop $ StdinSeg outChan dieChan
+newStdinSegment :: Formatter f => MVar FormatterString -> MVar () -> f -> Segment
+newStdinSegment outChan dieChan formatter = Segment $ stdinLoop outChan dieChan formatter
 
-stdinLoop :: StdinSegment -> IO ()
-stdinLoop seg = do
+stdinLoop :: Formatter f => MVar FormatterString -> MVar () -> f -> IO ()
+stdinLoop out die formatter = do
     eof <- isEOF
-    when eof $ putMVar (die seg) ()
+    when eof $ putMVar die ()
     line <- getLine
-    putMVar (getChan seg) line
-    stdinLoop seg
+    putMVar out $ format line formatter
+    stdinLoop out die formatter
