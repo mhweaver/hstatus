@@ -3,7 +3,6 @@ module Main where
 
 import Control.Monad
 import Control.Concurrent
-import Data.ByteString.Char8
 import Formatter
 import LemonbarFormatter
 import Segment
@@ -12,6 +11,11 @@ import TimeSegment
 import DateSegment
 import Prelude hiding (putStrLn, concat)
 
+-- Decorate an existing formatter by preprending a colored icon and underlining the whole thing in the same color
+basicFormatter :: Formatter f => FormatterString -> FormatterString -> f -> f
+basicFormatter color icon formatter = underline . underlineColor color . prependInner iconStr $ formatter
+                                      where iconStr = format icon $ wrapFgColor color $ formatter
+
 main :: IO ()
 main = do
     outChannel <- newEmptyMVar -- Updates do this MVar are printed to stdout
@@ -19,30 +23,38 @@ main = do
     wakeUp     <- newEmptyMVar -- Semaphore to signal the watcher thread to check for updates
 
     let baseFormatter = newLemonbarFormatter
-    -- Create segments
+
     stdinChannel <- newEmptyMVar
     timeChannel <- newEmptyMVar
     dateChannel <- newEmptyMVar
-    let stdinSeg = newStdinSegment stdinChannel die baseFormatter
-        timeSeg  = newTimeSegment timeChannel baseFormatter
-        dateSeg  = newDateSegment dateChannel baseFormatter
-
-    let segments = [ stdinSeg
-                   , timeSeg
-                   , dateSeg
-                   ] :: [Segment]
-        channels = [ stdinChannel
-                   , timeChannel
-                   , dateChannel
-                   ]
 
     -- Fire up the segments
-    sequence_ $ forkIO . runSegment <$> segments
+    sequence_ $ forkIO . runSegment <$>
+        [ newStdinSegment stdinChannel die baseFormatter
+        , newDateSegment dateChannel $ basicFormatter  "#00BAB1" "\61555 " baseFormatter -- \61555 = 
+        , newTimeSegment timeChannel $ basicFormatter "#66BA00" "\61463 " baseFormatter -- \61463 = 
+        ]
+
+    -- Set up watchers to notify the main watcher thread that something happened
+    let leftChannels  = [ stdinChannel ]
+        rightChannels = [ dateChannel
+                        , timeChannel
+                        ]
+    sequence_ $ fmap
+        (\chan -> forkIO $ forever (readMVar chan >> putMVar wakeUp ()))
+        (leftChannels ++ rightChannels)
 
     -- Watch the channels for updates
-    -- Set up watchers to notify the main watcher thread that something happened
-    sequence_ $ fmap (\chan -> forkIO $ forever (readMVar chan >> putMVar wakeUp ())) channels
-    forkIO $ watchForUpdates (fmap (\seg -> (seg, "")) channels) outChannel wakeUp
+    let initialLefts  = fmap (\seg -> (seg, "")) leftChannels
+        initialRights = fmap (\seg -> (seg, "")) rightChannels
+    forkIO $ watchForUpdates
+                initialLefts
+                initialRights
+                outChannel
+                wakeUp
+                ""
+                (align LeftAlign baseFormatter)
+                (align RightAlign baseFormatter)
 
     -- Watch the output channel and print to stdout
     forkIO . forever $ takeMVar outChannel >>= putStrLn
@@ -50,20 +62,30 @@ main = do
     -- Await termination signal
     void $ takeMVar die
 
-watchForUpdates :: [(MVar ByteString, ByteString)] -- (segment output channel, prev output from channel)
-                -> MVar ByteString                 -- Output channel
-                -> MVar ()                         -- Wake up semaphore
+watchForUpdates :: Formatter f =>
+                   [(MVar FormatterString, FormatterString)] -- (segment output channel, prev output from channel)
+                -> [(MVar FormatterString, FormatterString)] -- Right channels
+                -> MVar FormatterString                      -- Output channel
+                -> MVar ()                                   -- Wake up semaphore
+                -> FormatterString                           -- Previously outputted value
+                -> f                                         -- Left align formatter
+                -> f                                         -- Right align formatter
                 -> IO ()
-watchForUpdates channels outChannel wakeUp = do
+watchForUpdates lefts rights out wakeUp oldOut leftF rightF = do
     takeMVar wakeUp
-    updatedChannels <- sequence $ fmap (\(chan, oldValue) -> do
+    let getUpdatedOutputs = fmap (\(chan, oldValue) -> do
                                       maybeUpdate <- tryTakeMVar chan
                                       return $ case maybeUpdate of
                                           Nothing -> (chan, oldValue)
-                                          Just d -> (chan, d)) channels :: IO [(MVar ByteString, ByteString)]
-    let oldOutString = intercalate "  " . fmap snd $ channels
-        outString    = intercalate "  " . fmap snd $ updatedChannels
-    when (outString /= oldOutString) $ -- Only output if something changed
-        putMVar outChannel outString
-    watchForUpdates updatedChannels outChannel wakeUp
+                                          Just d -> (chan, d))
+    updatedLefts  <- sequence $ getUpdatedOutputs lefts
+    updatedRights <- sequence $ getUpdatedOutputs rights
+    let leftOut  = intercalate "  " . fmap snd $ updatedLefts
+        rightOut = intercalate "  " . fmap snd $ updatedRights
+        outString = format leftOut leftF `mappend` "  " `mappend` format rightOut rightF
+
+    when (outString /= oldOut) $ -- Only output if something changed
+        putMVar out outString
+
+    watchForUpdates updatedLefts updatedRights out wakeUp outString leftF rightF
 

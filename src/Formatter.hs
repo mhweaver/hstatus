@@ -15,13 +15,16 @@ module Formatter
     , bare
     , monitor
     , format
-    , Data.ByteString.Char8.pack
-    , Data.ByteString.Char8.getLine
+    , Data.Text.pack
+    , Data.Text.intercalate
+    , Data.Text.IO.getLine
+    , Data.Text.IO.putStrLn
     ) where
 
-import Data.ByteString.Char8
+import Data.Text
+import Data.Text.IO
 
-type FormatterString = ByteString
+type FormatterString = Text
 data Alignment = LeftAlign | CenterAlign | RightAlign
 class Formatter f where
     getDefaultColor :: f -> FormatterString
