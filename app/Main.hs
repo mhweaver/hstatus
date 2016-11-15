@@ -9,6 +9,7 @@ import Segment
 import StdinSegment
 import TimeSegment
 import DateSegment
+import MemorySegment
 import Prelude hiding (putStrLn, concat)
 
 -- Decorate an existing formatter by preprending a colored icon and underlining the whole thing in the same color
@@ -27,17 +28,20 @@ main = do
     stdinChannel <- newEmptyMVar
     timeChannel <- newEmptyMVar
     dateChannel <- newEmptyMVar
+    memChannel  <- newEmptyMVar
 
     -- Fire up the segments
     sequence_ $ forkIO . runSegment <$>
         [ newStdinSegment stdinChannel die baseFormatter
         , newDateSegment dateChannel $ basicFormatter  "#00BAB1" "\61555 " baseFormatter -- \61555 = 
         , newTimeSegment timeChannel $ basicFormatter "#66BA00" "\61463 " baseFormatter -- \61463 = 
+        , newMemorySegment memChannel $ basicFormatter "#" "icon" baseFormatter
         ]
 
     -- Set up watchers to notify the main watcher thread that something happened
     let leftChannels  = [ stdinChannel ]
-        rightChannels = [ dateChannel
+        rightChannels = [ memChannel
+                        , dateChannel
                         , timeChannel
                         ]
     sequence_ $ fmap

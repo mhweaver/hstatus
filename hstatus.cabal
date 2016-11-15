@@ -22,11 +22,12 @@ library
                      , StdinSegment
                      , TimeSegment
                      , DateSegment
+                     , MemorySegment
   build-depends:       base >= 4.7 && < 5
                      , bytestring
                      , time >= 1.6.0.1
                      , text
-                     , mtl >= 2.2.1
+                     , statgrab >= 0.1.3
   default-language:    Haskell2010
 
 executable hstatus
