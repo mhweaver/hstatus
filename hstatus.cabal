@@ -25,6 +25,7 @@ library
                      , MemorySegment
                      , LoadSegment
                      , CPUUsageSegment
+                     , NetworkSegment
   build-depends:       base >= 4.7 && < 5
                      , bytestring
                      , time >= 1.6.0.1
