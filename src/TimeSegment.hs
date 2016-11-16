@@ -7,11 +7,12 @@ import Segment
 import Formatter
 import Control.Concurrent
 import Data.Time
+import Data.Text
 
-newTimeSegment :: Formatter f => MVar FormatterString -> f -> Segment
+newTimeSegment :: Formatter f => MVar Text -> f -> Segment
 newTimeSegment chan formatter = Segment $ timeSegLoop chan formatter
 
-timeSegLoop :: Formatter f => MVar FormatterString -> f -> IO ()
+timeSegLoop :: Formatter f => MVar Text -> f -> IO ()
 timeSegLoop chan formatter = do
     timezone <- getCurrentTimeZone
     currTime <- getCurrentTime

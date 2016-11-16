@@ -1,8 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import System.IO (hFlush, stdout)
 import Control.Monad
 import Control.Concurrent
+import Data.Text
 import Formatter
 import LemonbarFormatter
 import Segment
@@ -11,10 +13,11 @@ import TimeSegment
 import DateSegment
 import MemorySegment
 import LoadSegment
+import CPUUsageSegment
 import Prelude hiding (putStrLn, concat)
 
 -- Decorate an existing formatter by preprending a colored icon and underlining the whole thing in the same color
-basicFormatter :: Formatter f => FormatterString -> FormatterString -> f -> f
+basicFormatter :: Formatter f => Text -> Text -> f -> f
 basicFormatter color icon formatter = underline . underlineColor color . prependInner iconStr $ formatter
                                       where iconStr = format icon $ wrapFgColor color $ formatter
 
@@ -31,6 +34,7 @@ main = do
     dateChannel <- newEmptyMVar
     memChannel  <- newEmptyMVar
     loadChannel <- newEmptyMVar
+    cpuUsageChannel <- newEmptyMVar
 
     -- Fire up the segments (order doesn't matter here)
     sequence_ $ forkIO . runSegment <$>
@@ -39,12 +43,14 @@ main = do
         , newTimeSegment timeChannel $ basicFormatter "#66BA00" "\61463 " baseFormatter -- \61463 = 
         , newMemorySegment memChannel $ basicFormatter "#BA4700" "\61642 " baseFormatter -- \61642 = 
         , newLoadSegment loadChannel $ basicFormatter "#0073BA" "\61568" baseFormatter -- \61568 = 
+        , newCpuUsageSegment cpuUsageChannel $ basicFormatter "#0073BA" "\61568" baseFormatter -- \61568 = 
         ]
 
     -- Set up watchers to notify the main watcher thread that something happened
     -- The segments will appear in the order listed here
     let leftChannels  = [ stdinChannel ]
-        rightChannels = [ loadChannel
+        rightChannels = [ cpuUsageChannel
+                        , loadChannel
                         , memChannel
                         , dateChannel
                         , timeChannel
@@ -65,18 +71,18 @@ main = do
                 (align LeftAlign baseFormatter)
                 (align RightAlign baseFormatter)
 
-    -- Watch the output channel and print to stdout
-    forkIO . forever $ takeMVar outChannel >>= putStrLn
+    -- Watch the output channel and print to stdout, flushing after every write
+    forkIO . forever $ takeMVar outChannel >>= putStrLn >> hFlush stdout
 
     -- Await termination signal
     void $ takeMVar die
 
 watchForUpdates :: Formatter f =>
-                   [(MVar FormatterString, FormatterString)] -- (segment output channel, prev output from channel)
-                -> [(MVar FormatterString, FormatterString)] -- Right channels
-                -> MVar FormatterString                      -- Output channel
+                   [(MVar Text, Text)] -- (segment output channel, prev output from channel)
+                -> [(MVar Text, Text)] -- Right channels
+                -> MVar Text                      -- Output channel
                 -> MVar ()                                   -- Wake up semaphore
-                -> FormatterString                           -- Previously outputted value
+                -> Text                           -- Previously outputted value
                 -> f                                         -- Left align formatter
                 -> f                                         -- Right align formatter
                 -> IO ()

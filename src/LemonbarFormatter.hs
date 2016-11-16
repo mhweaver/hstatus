@@ -19,13 +19,13 @@ module LemonbarFormatter
 
 import Formatter
 
-data LemonbarFormatter = LBFormatter { getBefore :: FormatterString
-                                     , getAfter  :: FormatterString }
+data LemonbarFormatter = LBFormatter { getBefore :: Text
+                                     , getAfter  :: Text }
 
-wrapInner :: FormatterString -> FormatterString -> LemonbarFormatter -> LemonbarFormatter
+wrapInner :: Text -> Text -> LemonbarFormatter -> LemonbarFormatter
 wrapInner before after f = f { getBefore = getBefore f `mappend` before
                              , getAfter  = after       `mappend` getAfter f }
-wrapOuter :: FormatterString -> FormatterString -> LemonbarFormatter -> LemonbarFormatter
+wrapOuter :: Text -> Text -> LemonbarFormatter -> LemonbarFormatter
 wrapOuter before after f = f { getBefore = before     `mappend` getBefore f
                              , getAfter  = getAfter f `mappend` after }
 

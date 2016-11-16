@@ -16,7 +16,7 @@ data SegmentConfig f = SegConfig {
                                , getHigherFormatter  :: f
                                , getHighestFormatter :: f
                                }
-newMemorySegment :: Formatter f => MVar FormatterString -> f -> Segment
+newMemorySegment :: Formatter f => MVar Text -> f -> Segment
 newMemorySegment chan formatter = Segment $ memSegmentLoop chan config
     where bareFormatter = bare formatter
           config = SegConfig
@@ -27,7 +27,7 @@ newMemorySegment chan formatter = Segment $ memSegmentLoop chan config
             , getHighestFormatter = wrapFgColor "#ff0000" bareFormatter
             }
 
-memSegmentLoop :: Formatter f => MVar FormatterString -- Output channel
+memSegmentLoop :: Formatter f => MVar Text -- Output channel
                               -> SegmentConfig f
                               -> IO ()
 memSegmentLoop out config = do
@@ -39,7 +39,7 @@ memSegmentLoop out config = do
     threadDelay $ 5 * 1000 * 1000
     memSegmentLoop out config
 
-renderOutput :: Formatter f => Integer -> Integer -> SegmentConfig f -> FormatterString
+renderOutput :: Formatter f => Integer -> Integer -> SegmentConfig f -> Text
 renderOutput used total config = format ( formattedUsed
                                           `mappend` " / "
                                           `mappend` totalGiBStr
