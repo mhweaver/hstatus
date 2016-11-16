@@ -31,9 +31,9 @@ wrapOuter before after f = f { getBefore = before     `mappend` getBefore f
 
 instance Formatter LemonbarFormatter where
     getDefaultColor = const "-"
-    wrapFgColor color = wrapOuter ("%F" `mappend` color `mappend` "}") "%{F-}"
-    wrapBgColor color = wrapOuter ("%B" `mappend` color `mappend` "}") "%{B-}"
-    underlineColor color = wrapOuter ("%U" `mappend` color `mappend` "}") "%{U-}"
+    wrapFgColor color = wrapOuter ("%{F" `mappend` color `mappend` "}") "%{F-}"
+    wrapBgColor color = wrapOuter ("%{B" `mappend` color `mappend` "}") "%{B-}"
+    underlineColor color = wrapOuter ("%{U" `mappend` color `mappend` "}") "%{U-}"
     underline = wrapOuter "%{+u}" "%{-u}"
     align alignment = wrapOuter ("%{" `mappend` loc `mappend` "}") "" where
                       loc = case alignment of
