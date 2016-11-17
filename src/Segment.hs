@@ -1,4 +1,3 @@
-{-# LANGUAGE ExistentialQuantification #-}
 module Segment
     ( Segment (Segment)
     , runSegment

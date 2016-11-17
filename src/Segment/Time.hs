@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Segment.Time
     ( newTimeSegment
     ) where
