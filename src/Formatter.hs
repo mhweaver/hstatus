@@ -34,5 +34,5 @@ class Formatter f where
     prependInner    :: Text -> f -> f
     bare            :: f -> f
     monitor         :: Text -> f -> f
-    format          :: Text -> f -> Text
+    format          :: f -> Text -> Text
 

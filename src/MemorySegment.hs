@@ -36,18 +36,17 @@ memSegmentLoop out config = do
         used   = total - (memFree stats + memCache stats)
         output = renderOutput used total config
     putMVar out output
-    threadDelay $ 5 * 1000 * 1000
+    threadDelay $ 5 * 1000 * 1000 -- 5 seconds
     memSegmentLoop out config
 
 renderOutput :: Formatter f => Integer -> Integer -> SegmentConfig f -> Text
-renderOutput used total config = format ( formattedUsed
+renderOutput used total config = format (getBaseFormatter config) $
+                                          formattedUsed
                                           `mappend` " / "
                                           `mappend` totalGiBStr
                                           `mappend` " ("
                                           `mappend` formattedPercentUsed
                                           `mappend` ")"
-                                        )
-                                 $ getBaseFormatter config
     where percentUsed = (100.0 * fromIntegral used / fromIntegral total) :: Float
           usageFormatter | percentUsed > 95.0 = getHighestFormatter config
                          | percentUsed > 90.0 = getHigherFormatter  config
@@ -58,6 +57,6 @@ renderOutput used total config = format ( formattedUsed
           usedGiBStr  = pack $ (printf "%.2f" usedGiB :: String) ++ "GiB"
           totalGiBStr = pack $ (printf "%.2f" totalGiB :: String) ++ "GiB"
           percentUsedStr = pack $ (printf "%.2f" percentUsed :: String) ++ "%"
-          formattedUsed = format usedGiBStr usageFormatter
-          formattedPercentUsed = format percentUsedStr usageFormatter
+          formattedUsed = format usageFormatter usedGiBStr
+          formattedPercentUsed = format usageFormatter percentUsedStr
 

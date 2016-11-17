@@ -19,8 +19,8 @@ data Icons = Icons { rxIcon :: Text, txIcon :: Text }
 newNetworkSegment :: Formatter f => MVar Text -> f -> Segment
 newNetworkSegment chan formatter = Segment $ networkSegLoop chan formatter icons InitialSample
     where whiteFg = wrapFgColor "#ffffff" $ bare formatter
-          icons = Icons { rxIcon = format "\61677" whiteFg -- \61677 = 
-                        , txIcon = format "\61678" whiteFg } -- \61678 = 
+          icons = Icons { rxIcon = format whiteFg "\61677" -- \61677 = 
+                        , txIcon = format whiteFg "\61678" } -- \61678 = 
 
 interval :: Int
 interval = 2
@@ -28,7 +28,7 @@ interval = 2
 networkSegLoop :: Formatter f => MVar Text -> f -> Icons -> Sample -> IO ()
 networkSegLoop out formatter icons lastSample = do
     sample <- getSample
-    putMVar out $ format (renderOutput icons lastSample sample) formatter
+    putMVar out $ format formatter (renderOutput icons lastSample sample)
     threadDelay $ interval * 1000 * 1000 -- 2 seconds
     networkSegLoop out formatter icons sample
 

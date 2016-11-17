@@ -36,7 +36,7 @@ segmentLoop out formatter = do
 runSegmentLoop :: Formatter f => MVar Text -> f -> SegmentConfig f -> IO ()
 runSegmentLoop out formatter config = do
     load <- runStats (snapshot :: Stats Load)
-    let output = format (renderOutput config load) formatter
+    let output = format formatter $ renderOutput config load
     putMVar out output
     threadDelay $ 1000 * 1000 -- 1 second
     runSegmentLoop out formatter config
@@ -52,7 +52,7 @@ renderOutput config load = l1
           l15 = renderSingleLoad config $ load15 load
 
 renderSingleLoad :: Formatter f => SegmentConfig f -> Double -> Text
-renderSingleLoad config load  = format loadStr formatter
+renderSingleLoad config load  = format formatter loadStr
     where formatter | load >= (fromIntegral $ redThreshold config)    = getRedFormatter config
                     | load >= (fromIntegral $ yellowThreshold config) = getYellowFormatter config
                     | otherwise                                       = getDefaultFormatter config

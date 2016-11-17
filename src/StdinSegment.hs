@@ -18,5 +18,5 @@ stdinLoop out die formatter = do
     eof <- isEOF
     when eof $ putMVar die ()
     line <- getLine
-    putMVar out $ format line formatter
+    putMVar out $ format formatter line
     stdinLoop out die formatter

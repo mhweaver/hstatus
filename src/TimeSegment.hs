@@ -17,6 +17,6 @@ timeSegLoop chan formatter = do
     timezone <- getCurrentTimeZone
     currTime <- getCurrentTime
     let formattedTime = pack $ formatTime defaultTimeLocale "%I:%M:%S %P" (utcToLocalTime timezone currTime)
-    putMVar chan $ format formattedTime formatter
+    putMVar chan $ format formatter formattedTime
     threadDelay $ 1000 * 1000
     timeSegLoop chan formatter

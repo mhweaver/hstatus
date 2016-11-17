@@ -15,7 +15,7 @@ newDriveSpaceSegment chan formatter = Segment $ segLoop chan formatter
 segLoop :: Formatter f => MVar Text -> f -> IO ()
 segLoop out formatter = do
     diskUsage <- getDiskUsage "/"
-    putMVar out $ format (renderOutput formatter diskUsage) formatter
+    putMVar out . format formatter $ renderOutput formatter diskUsage
     threadDelay $ 60 * 1000 * 1000 -- 1 minute
     segLoop out formatter
 

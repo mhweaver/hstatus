@@ -45,7 +45,7 @@ instance Formatter LemonbarFormatter where
     prependInner toPrepend = wrapInner toPrepend ""
     bare f = f { getBefore = "", getAfter = "" }
     monitor m =  wrapOuter ("%{S" `mappend` m `mappend` "}") ""
-    format s f = getBefore f `mappend` s `mappend` getAfter f
+    format f s = getBefore f `mappend` s `mappend` getAfter f
 
 newLemonbarFormatter :: LemonbarFormatter
 newLemonbarFormatter = LBFormatter "" ""

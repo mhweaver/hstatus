@@ -21,7 +21,7 @@ import Prelude hiding (putStrLn, concat)
 -- Decorate an existing formatter by preprending a colored icon and underlining the whole thing in the same color
 basicFormatter :: Formatter f => Text -> Text -> f -> f
 basicFormatter color icon formatter = underline . underlineColor color . prependInner iconStr $ formatter
-                                      where iconStr = format icon $ wrapFgColor color $ formatter
+                                      where iconStr = format (wrapFgColor color $ formatter) $ icon 
 
 main :: IO ()
 main = do
@@ -70,14 +70,17 @@ main = do
     -- Watch the channels for updates
     let initialLefts  = fmap (\seg -> (seg, "")) leftChannels
         initialRights = fmap (\seg -> (seg, "")) rightChannels
+        formatters = Formatters { leftF = align LeftAlign baseFormatter
+                                , rightF = align RightAlign baseFormatter
+                                , firstScreen = monitor "f" baseFormatter
+                                , lastScreen = monitor "l" baseFormatter }
     forkIO $ watchForUpdates
                 initialLefts
                 initialRights
                 outChannel
                 wakeUp
                 ""
-                (align LeftAlign baseFormatter)
-                (align RightAlign baseFormatter)
+                formatters
 
     -- Watch the output channel and print to stdout, flushing after every write
     forkIO . forever $ takeMVar outChannel >>= putStrLn >> hFlush stdout
@@ -85,16 +88,21 @@ main = do
     -- Await termination signal
     void $ takeMVar die
 
+data Formatters f = Formatters { leftF :: f
+                               , rightF :: f
+                               , firstScreen :: f
+                               , lastScreen :: f
+                               }
+
 watchForUpdates :: Formatter f =>
                    [(MVar Text, Text)] -- (segment output channel, prev output from channel)
                 -> [(MVar Text, Text)] -- Right channels
-                -> MVar Text                      -- Output channel
-                -> MVar ()                                   -- Wake up semaphore
-                -> Text                           -- Previously outputted value
-                -> f                                         -- Left align formatter
-                -> f                                         -- Right align formatter
+                -> MVar Text           -- Output channel
+                -> MVar ()             -- Wake up semaphore
+                -> Text                -- Previously outputted value
+                -> Formatters f        -- Formatters (duh)
                 -> IO ()
-watchForUpdates lefts rights out wakeUp oldOut leftF rightF = do
+watchForUpdates lefts rights out wakeUp oldOut fs = do
     takeMVar wakeUp
     let getUpdatedOutputs = fmap (\(chan, oldValue) -> do
                                       maybeUpdate <- tryTakeMVar chan
@@ -105,10 +113,11 @@ watchForUpdates lefts rights out wakeUp oldOut leftF rightF = do
     updatedRights <- sequence $ getUpdatedOutputs rights
     let leftOut  = intercalate "  " . fmap snd $ updatedLefts
         rightOut = intercalate "  " . fmap snd $ updatedRights
-        outString = format leftOut leftF `mappend` "  " `mappend` format rightOut rightF
+        outString = format (leftF fs) leftOut `mappend` "  " `mappend` format (rightF fs) rightOut
+        outToBothMonitors = format (firstScreen fs) outString `mappend` format (lastScreen fs) outString
 
     when (outString /= oldOut) $ -- Only output if something changed
-        putMVar out outString
+        putMVar out outToBothMonitors
 
-    watchForUpdates updatedLefts updatedRights out wakeUp outString leftF rightF
+    watchForUpdates updatedLefts updatedRights out wakeUp outString fs
 

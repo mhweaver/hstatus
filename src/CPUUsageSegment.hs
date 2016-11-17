@@ -34,7 +34,7 @@ runUsageLoop out formatter config = do
     threadDelay $ 3 * 1000 * 1000 -- 3 seconds
     samples1 <- getSamples
     let percentages = getPercentages $ zip samples0 samples1
-    putMVar out $ format (renderOutput config percentages) formatter
+    putMVar out . format formatter $ renderOutput config percentages
     runUsageLoop out formatter config
 
 renderOutput :: Formatter f => SegmentConfig f -> [Float] -> Text
@@ -42,7 +42,7 @@ renderOutput config percentages = unwords $ fmap renderSinglePercentage percenta
     where pFormatter p | p >= 85.0 = redFg config
                        | p >= 50.0 = orangeFg config
                        | otherwise = defaultFg config
-          renderSinglePercentage p = format (pack $ printf "%.2f" p ++ "%") $ pFormatter p
+          renderSinglePercentage p = format (pFormatter p) . pack $ printf "%.2f" p ++ "%"
 
 type Sample = (Integer, Integer) -- (idle, total)
 getSamples :: IO ([Sample])

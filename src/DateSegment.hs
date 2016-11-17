@@ -16,7 +16,7 @@ timeSegLoop :: Formatter f => MVar Text -> f -> IO ()
 timeSegLoop chan formatter = do
     currTime <- getCurrentTime
     let dateString = pack $ formatTime defaultTimeLocale "%a %_Y-%m-%d" currTime
-    putMVar chan $ format dateString formatter
+    putMVar chan $ format formatter dateString
     threadDelay $ 30 * 60 * 1000 * 1000
     timeSegLoop chan formatter
 
