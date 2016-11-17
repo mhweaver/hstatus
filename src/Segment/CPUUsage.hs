@@ -45,11 +45,11 @@ renderOutput config percentages = unwords $ fmap renderSinglePercentage percenta
           renderSinglePercentage p = format (pFormatter p) . pack $ printf "%.2f" p ++ "%"
 
 data Sample = Sample Integer Integer -- (idle, total)
-getSamples :: IO ([Sample])
+getSamples :: IO [Sample]
 getSamples = do
     rawInput <- readFile "/proc/stat"
-    let samples = fmap toSample . fmap toIntegers . filter isCpuLine . lines $ rawInput
-    return $ samples
+    let samples = fmap (toSample . toIntegers) . filter isCpuLine . lines $ rawInput
+    return samples
 
 isCpuLine :: Text -> Bool
 isCpuLine str = isJust match
@@ -57,11 +57,11 @@ isCpuLine str = isJust match
           match = find re str
 
 toIntegers :: Text -> [Integer]
-toIntegers str = fmap fst . rights . fmap (decimal :: Reader Integer) . words $ str
+toIntegers = fmap fst . rights . fmap (decimal :: Reader Integer) . words
 
 toSample :: [Integer] -> Sample
 toSample all@(user:nice:system:idle:rest) = Sample idle (sum all)
 
 getPercentages :: [(Sample, Sample)] -> [Float]
-getPercentages samples = fmap toPercent samples
-    where toPercent ((Sample i0 t0), (Sample i1 t1)) = 100.0 * fromIntegral ((t1 - t0) - (i1 - i0)) / fromIntegral (t1 - t0)
+getPercentages = fmap toPercent
+    where toPercent (Sample i0 t0, Sample i1 t1) = 100.0 * fromIntegral ((t1 - t0) - (i1 - i0)) / fromIntegral (t1 - t0)

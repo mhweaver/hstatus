@@ -54,7 +54,7 @@ isIFaceLine line = isJust $ find re line
     where re = regex [] "^\\s+eth0:"
 
 toIntegers :: Text -> [Integer]
-toIntegers str = fmap fst . rights . fmap (decimal :: Reader Integer) . words $ str
+toIntegers = fmap fst . rights . fmap (decimal :: Reader Integer) . words
 
 toSample :: [Integer] -> Sample
 toSample(rx:_:_:_:_:_:_:_:tx:_) = Sample { rxBytes = rx, txBytes = tx }

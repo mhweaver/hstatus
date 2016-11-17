@@ -53,8 +53,8 @@ renderOutput config load = l1
 
 renderSingleLoad :: Formatter f => SegmentConfig f -> Double -> Text
 renderSingleLoad config load  = format formatter loadStr
-    where formatter | load >= (fromIntegral $ redThreshold config)    = getRedFormatter config
-                    | load >= (fromIntegral $ yellowThreshold config) = getYellowFormatter config
+    where formatter | load >= fromIntegral (redThreshold config)    = getRedFormatter config
+                    | load >= fromIntegral (yellowThreshold config) = getYellowFormatter config
                     | otherwise                                       = getDefaultFormatter config
           loadStr = pack (printf "%.2f" load :: String)
 

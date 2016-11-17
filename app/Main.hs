@@ -13,7 +13,7 @@ import Prelude hiding (putStrLn, concat)
 -- Decorate an existing formatter by preprending a colored icon and underlining the whole thing in the same color
 basicFormatter :: Formatter f => Text -> Text -> f -> f
 basicFormatter color icon formatter = underline . underlineColor color . prependInner iconStr $ formatter
-                                      where iconStr = format (wrapFgColor color $ formatter) $ icon 
+                                      where iconStr = format (wrapFgColor color formatter) icon
 
 main :: IO ()
 main = do

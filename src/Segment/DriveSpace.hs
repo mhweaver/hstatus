@@ -25,5 +25,5 @@ renderOutput formatter usage = free `mappend` "GiB / " `mappend` total `mappend`
           total = pack $ printf "%.2f" totalGiB
           freeGiB = toGiB $ diskFree usage
           totalGiB = toGiB $ diskTotal usage
-          toGiB b = (fromIntegral b) / 1024.0 / 1024.0 / 1024.0 :: Float
+          toGiB b = fromIntegral b / 1024.0 / 1024.0 / 1024.0 :: Float
 

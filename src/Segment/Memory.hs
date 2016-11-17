@@ -31,7 +31,7 @@ memSegmentLoop :: Formatter f => MVar Text -- Output channel
                               -> SegmentConfig f
                               -> IO ()
 memSegmentLoop out config = do
-    stats <- runStats $ (snapshot :: Stats Memory)
+    stats <- runStats (snapshot :: Stats Memory)
     let total  = memTotal stats
         used   = total - (memFree stats + memCache stats)
         output = renderOutput used total config
