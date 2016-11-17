@@ -15,6 +15,7 @@ import MemorySegment
 import LoadSegment
 import CPUUsageSegment
 import NetworkSegment
+import DriveSpaceSegment
 import Prelude hiding (putStrLn, concat)
 
 -- Decorate an existing formatter by preprending a colored icon and underlining the whole thing in the same color
@@ -37,6 +38,7 @@ main = do
     loadChannel <- newEmptyMVar
     cpuUsageChannel <- newEmptyMVar
     networkChannel <- newEmptyMVar
+    driveSpaceChannel <- newEmptyMVar
 
     -- Fire up the segments (order doesn't matter here)
     sequence_ $ forkIO . runSegment <$>
@@ -47,12 +49,14 @@ main = do
         , newLoadSegment loadChannel $ basicFormatter "#0073BA" "\61568" baseFormatter -- \61568 = 
         , newCpuUsageSegment cpuUsageChannel $ basicFormatter "#0073BA" "\61568" baseFormatter -- \61568 = 
         , newNetworkSegment networkChannel $ basicFormatter "#008079" "\61672 " baseFormatter -- \61672 = 
+        , newDriveSpaceSegment driveSpaceChannel $ basicFormatter "#999999" "\61600 " baseFormatter -- \61600 = 
         ]
 
     -- Set up watchers to notify the main watcher thread that something happened
     -- The segments will appear in the order listed here
     let leftChannels  = [ stdinChannel ]
-        rightChannels = [ networkChannel
+        rightChannels = [ driveSpaceChannel
+                        , networkChannel
                         , cpuUsageChannel
                         , loadChannel
                         , memChannel
