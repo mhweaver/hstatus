@@ -1,20 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module LemonbarFormatter
-    ( Formatter
-    , LemonbarFormatter
+    ( module Formatter
     , newLemonbarFormatter
-    , getDefaultColor
-    , wrapFgColor
-    , wrapBgColor
-    , underlineColor
-    , underline
-    , align
-    , bold
-    , appendInner
-    , prependInner
-    , bare
-    , monitor
-    , format
     ) where
 
 import Formatter
