@@ -1,4 +1,4 @@
-module StdinSegment
+module Segment.Stdin
     ( newStdinSegment
     ) where
 

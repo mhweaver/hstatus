@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module DateSegment
+module Segment.Date
     ( newDateSegment
     ) where
 

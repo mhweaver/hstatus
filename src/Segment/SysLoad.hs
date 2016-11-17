@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module LoadSegment
+module Segment.SysLoad
     ( newLoadSegment
     ) where
 

@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module CPUUsageSegment
+module Segment.CPUUsage
     ( newCpuUsageSegment
     ) where
 
@@ -44,7 +44,7 @@ renderOutput config percentages = unwords $ fmap renderSinglePercentage percenta
                        | otherwise = defaultFg config
           renderSinglePercentage p = format (pFormatter p) . pack $ printf "%.2f" p ++ "%"
 
-type Sample = (Integer, Integer) -- (idle, total)
+data Sample = Sample Integer Integer -- (idle, total)
 getSamples :: IO ([Sample])
 getSamples = do
     rawInput <- readFile "/proc/stat"
@@ -60,8 +60,8 @@ toIntegers :: Text -> [Integer]
 toIntegers str = fmap fst . rights . fmap (decimal :: Reader Integer) . words $ str
 
 toSample :: [Integer] -> Sample
-toSample all@(user:nice:system:idle:rest) = (idle, sum all)
+toSample all@(user:nice:system:idle:rest) = Sample idle (sum all)
 
 getPercentages :: [(Sample, Sample)] -> [Float]
 getPercentages samples = fmap toPercent samples
-    where toPercent ((i0, t0), (i1, t1)) = 100.0 * fromIntegral ((t1 - t0) - (i1 - i0)) / fromIntegral (t1 - t0)
+    where toPercent ((Sample i0 t0), (Sample i1 t1)) = 100.0 * fromIntegral ((t1 - t0) - (i1 - i0)) / fromIntegral (t1 - t0)

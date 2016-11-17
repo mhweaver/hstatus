@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module NetworkSegment
+module Segment.Network
     ( newNetworkSegment
     ) where
 

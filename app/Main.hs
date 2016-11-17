@@ -8,14 +8,15 @@ import Data.Text
 import Formatter
 import LemonbarFormatter
 import Segment
-import StdinSegment
-import TimeSegment
-import DateSegment
-import MemorySegment
-import LoadSegment
-import CPUUsageSegment
-import NetworkSegment
-import DriveSpaceSegment
+import Segment.Segments
+--import StdinSegment
+--import TimeSegment
+--import DateSegment
+--import MemorySegment
+--import LoadSegment
+--import CPUUsageSegment
+--import NetworkSegment
+--import DriveSpaceSegment
 import Prelude hiding (putStrLn, concat)
 
 -- Decorate an existing formatter by preprending a colored icon and underlining the whole thing in the same color

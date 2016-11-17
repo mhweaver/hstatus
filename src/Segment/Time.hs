@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module TimeSegment
+module Segment.Time
     ( newTimeSegment
     ) where
 

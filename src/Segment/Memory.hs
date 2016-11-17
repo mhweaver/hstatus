@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module MemorySegment
+module Segment.Memory
     ( newMemorySegment
     ) where
 

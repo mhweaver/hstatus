@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module DriveSpaceSegment
+module Segment.DriveSpace
     ( newDriveSpaceSegment
     ) where
 

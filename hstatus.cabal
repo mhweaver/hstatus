@@ -19,14 +19,15 @@ library
                      , Formatter
                      , LemonbarFormatter
                      , Segment
-                     , StdinSegment
-                     , TimeSegment
-                     , DateSegment
-                     , MemorySegment
-                     , LoadSegment
-                     , CPUUsageSegment
-                     , NetworkSegment
-                     , DriveSpaceSegment
+                     , Segment.Segments
+  other-modules:       Segment.Stdin
+                     , Segment.Time
+                     , Segment.Date
+                     , Segment.Memory
+                     , Segment.SysLoad
+                     , Segment.CPUUsage
+                     , Segment.Network
+                     , Segment.DriveSpace
   build-depends:       base >= 4.7 && < 5
                      , bytestring
                      , time >= 1.6.0.1
