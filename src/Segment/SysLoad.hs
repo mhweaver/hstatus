@@ -4,10 +4,13 @@ module Segment.SysLoad
     ) where
 
 import Segment
-import Formatter
+import Formatter hiding (find, filter, length)
 import Control.Concurrent
-import System.Statgrab
+import Data.Maybe
+import Data.Text.ICU
+import Data.Text.Read
 import Text.Printf
+import Prelude hiding (readFile, words, lines)
 
 data SegmentConfig f = LoadConfig { yellowThreshold :: Integer
                                   , redThreshold :: Integer
@@ -22,10 +25,10 @@ newLoadSegment chan formatter = Segment $ segmentLoop chan formatter
 
 segmentLoop :: Formatter f => MVar Text -> f -> IO ()
 segmentLoop out formatter = do
-    host <- runStats (snapshot :: Stats Host)
+    cpuInfo <- getCpuInfo
     let bareFormatter = bare formatter
-        config = LoadConfig { yellowThreshold = hostNCPU host
-                            , redThreshold = 2 * hostNCPU host
+        config = LoadConfig { yellowThreshold = numCpus cpuInfo
+                            , redThreshold = 2 * numCpus cpuInfo
                             , getBaseFormatter = formatter
                             , getRedFormatter = wrapFgColor "#ff0000" bareFormatter
                             , getYellowFormatter = wrapFgColor "#ffff00" bareFormatter
@@ -33,13 +36,39 @@ segmentLoop out formatter = do
                             }
     runSegmentLoop out formatter config
 
+data CPUInfo = CPUInfo { numCpus :: Integer }
+getCpuInfo :: IO CPUInfo
+getCpuInfo = do
+  rawCpuInfo <- readFile "/proc/cpuinfo"
+  return . CPUInfo . fromIntegral . length . filter isProcessorLine . lines $ rawCpuInfo
+
+isProcessorLine :: Text -> Bool
+isProcessorLine line = isJust $ find re line
+    where re = regex [] "^processor\\s+: \\d+"
+
 runSegmentLoop :: Formatter f => MVar Text -> f -> SegmentConfig f -> IO ()
 runSegmentLoop out formatter config = do
-    load <- runStats (snapshot :: Stats Load)
+    load <- getLoad
     let output = format formatter $ renderOutput config load
     putMVar out output
     threadDelay $ 1000 * 1000 -- 1 second
     runSegmentLoop out formatter config
+
+data Load = Load { load1 :: Double
+                 , load5 :: Double
+                 , load15 :: Double }
+
+getLoad :: IO Load
+getLoad = do
+    loadAvg <- readFile "/proc/loadavg"
+    return . extractLoad . words $ loadAvg
+
+extractLoad :: [Text] -> Load
+extractLoad (l1:l5:l15:_) = Load (toDouble l1) (toDouble l5) (toDouble l15)
+    where toDouble t = case double t of
+                       Right d -> fst d
+                       Left _  -> -1
+extractLoad _ = Load (-1) (-1) (-1)
 
 renderOutput :: Formatter f => SegmentConfig f -> Load -> Text
 renderOutput config load = l1
