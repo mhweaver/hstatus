@@ -36,7 +36,7 @@ renderOutput :: Icons -> Sample -> Sample -> Text
 renderOutput _ InitialSample _ = "Unknown"
 renderOutput _ _ InitialSample = "Unknown"
 renderOutput (Icons rxIcon txIcon) s0 s1 = output
-    where rxSpeed = toStr txSpeedBps
+    where rxSpeed = toStr rxSpeedBps
           txSpeed = toStr txSpeedBps
           output = rxIcon `mappend` rxSpeed `mappend` " " `mappend` txIcon `mappend` txSpeed
           rxSpeedBps = fromIntegral (rxBytes s1 - rxBytes s0) / fromIntegral interval :: Float
