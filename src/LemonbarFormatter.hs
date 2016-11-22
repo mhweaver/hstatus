@@ -22,6 +22,7 @@ instance Formatter LemonbarFormatter where
     wrapBgColor color = wrapOuter ("%{B" `mappend` color `mappend` "}") "%{B-}"
     underlineColor color = wrapOuter ("%{U" `mappend` color `mappend` "}") "%{U-}"
     underline = wrapOuter "%{+u}" "%{-u}"
+    overline = wrapOuter "%{+o}" "%{-o}"
     align alignment = wrapOuter ("%{" `mappend` loc `mappend` "}") "" where
                       loc = case alignment of
                             LeftAlign -> "l"

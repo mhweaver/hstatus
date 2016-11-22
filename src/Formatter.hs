@@ -8,6 +8,7 @@ module Formatter
     , wrapBgColor
     , underlineColor
     , underline
+    , overline
     , align
     , Alignment (LeftAlign, CenterAlign, RightAlign)
     , bold
@@ -28,6 +29,7 @@ class Formatter f where
     wrapBgColor     :: Text -> f -> f
     underlineColor  :: Text -> f -> f
     underline       :: f -> f
+    overline        :: f -> f
     align           :: Alignment -> f -> f
     bold            :: f -> f
     appendInner     :: Text -> f -> f
