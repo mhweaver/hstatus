@@ -38,8 +38,8 @@ main = do
         , newDateSegment dateChannel $ basicFormatter  "#00BAB1" "\61555 " baseFormatter -- \61555 = 
         , newTimeSegment timeChannel $ basicFormatter "#66BA00" "\61463 " baseFormatter -- \61463 = 
         , newMemorySegment memChannel $ basicFormatter "#BA4700" "\61642 " baseFormatter -- \61642 = 
-        , newLoadSegment loadChannel $ basicFormatter "#0073BA" "\61568" baseFormatter -- \61568 = 
-        , newCpuUsageSegment cpuUsageChannel $ basicFormatter "#0073BA" "\61568" baseFormatter -- \61568 = 
+        , newLoadSegment loadChannel $ basicFormatter "#0073BA" "\61568 " baseFormatter -- \61568 = 
+        , newCpuUsageSegment cpuUsageChannel $ basicFormatter "#0073BA" "\61568 " baseFormatter -- \61568 = 
         , newNetworkSegment networkChannel $ basicFormatter "#008079" "\61672 " baseFormatter -- \61672 = 
         , newDriveSpaceSegment driveSpaceChannel $ basicFormatter "#999999" "\61600 " baseFormatter -- \61600 = 
         ]

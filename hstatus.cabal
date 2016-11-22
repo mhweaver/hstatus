@@ -28,11 +28,8 @@ library
                      , Segment.Network
                      , Segment.DriveSpace
   build-depends:       base >= 4.7 && < 5
-                     , bytestring
                      , time >= 1.6.0.1
                      , text
-                     , statgrab >= 0.1.3
-                     , parsec >= 3.1.11
                      , text-icu >= 0.7.0.1
                      , disk-free-space >= 0.1.0.1
   default-language:    Haskell2010
@@ -44,7 +41,6 @@ executable hstatus
   build-depends:       base
                      , text
                      , hstatus
-                     , bytestring
   default-language:    Haskell2010
 
 test-suite hstatus-test
