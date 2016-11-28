@@ -95,5 +95,5 @@ toIntegers :: Text -> [Integer]
 toIntegers = fmap fst . rights . fmap (decimal :: Reader Integer) . words
 
 safeHead :: [a] -> Maybe a
-safeHead (x:xs) = Just x
+safeHead (x:_) = Just x
 safeHead [] = Nothing

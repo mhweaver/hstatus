@@ -36,7 +36,7 @@ segmentLoop out formatter = do
                             }
     runSegmentLoop out formatter config
 
-data CPUInfo = CPUInfo { numCpus :: Integer }
+data CPUInfo = CPUInfo { numCpus :: !Integer }
 getCpuInfo :: IO CPUInfo
 getCpuInfo = do
   rawCpuInfo <- readFile "/proc/cpuinfo"
@@ -54,9 +54,9 @@ runSegmentLoop out formatter config = do
     threadDelay $ 1000 * 1000 -- 1 second
     runSegmentLoop out formatter config
 
-data Load = Load { load1 :: Double
-                 , load5 :: Double
-                 , load15 :: Double }
+data Load = Load { load1 :: !Double
+                 , load5 :: !Double
+                 , load15 :: !Double }
 
 getLoad :: IO Load
 getLoad = do

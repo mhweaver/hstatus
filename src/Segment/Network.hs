@@ -13,14 +13,14 @@ import Data.Text.ICU
 import Data.Text.Read
 import Text.Printf
 
-data Sample = InitialSample | Sample { rxBytes :: Integer, txBytes :: Integer }
+data Sample = InitialSample | Sample { rxBytes :: !Integer, txBytes :: !Integer }
 data Icons = Icons { rxIcon :: Text, txIcon :: Text }
 
 newNetworkSegment :: Formatter f => MVar Text -> f -> Segment
 newNetworkSegment chan formatter = Segment $ networkSegLoop chan formatter icons InitialSample
-    where whiteFg = wrapFgColor "#ffffff" $ bare formatter
-          icons = Icons { rxIcon = format whiteFg "\61677" -- \61677 = 
-                        , txIcon = format whiteFg "\61678" } -- \61678 = 
+    where whiteFg = format (wrapFgColor "#ffffff" $ bare formatter)
+          icons = Icons { rxIcon = whiteFg "\61677" -- \61677 = 
+                        , txIcon = whiteFg "\61678" } -- \61678 = 
 
 interval :: Int
 interval = 2

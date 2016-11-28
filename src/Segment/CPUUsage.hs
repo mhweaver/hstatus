@@ -44,7 +44,7 @@ renderOutput config percentages = unwords $ fmap renderSinglePercentage percenta
                        | otherwise = defaultFg config
           renderSinglePercentage p = format (pFormatter p) . pack $ printf "%.2f" p ++ "%"
 
-data Sample = Sample Integer Integer -- (idle, total)
+data Sample = Sample !Integer !Integer -- (idle, total)
 getSamples :: IO [Sample]
 getSamples = do
     rawInput <- readFile "/proc/stat"
