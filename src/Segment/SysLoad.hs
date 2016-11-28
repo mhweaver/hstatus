@@ -20,11 +20,16 @@ data SegmentConfig f = LoadConfig { yellowThreshold :: Integer
                                   , getDefaultFormatter :: f
                                   }
 
-newLoadSegment :: Formatter f => MVar Text -> f -> Segment
-newLoadSegment chan formatter = Segment $ segmentLoop chan formatter
+newLoadSegment :: Formatter f => f -> IO Segment
+newLoadSegment formatter = do
+    updateNotifier <- atomically newEmptyTMVar
+    out <- atomically $ newTVar ""
+    let segOut = SegmentOutput (updateNotifier, out)
+    return Segment { runSegment = segmentLoop segOut formatter
+                   , getOutput = segOut }
 
-segmentLoop :: Formatter f => MVar Text -> f -> IO ()
-segmentLoop out formatter = do
+segmentLoop :: Formatter f => SegmentOutput -> f -> IO ()
+segmentLoop segOut formatter = do
     cpuInfo <- getCpuInfo
     let bareFormatter = bare formatter
         config = LoadConfig { yellowThreshold = numCpus cpuInfo
@@ -34,7 +39,7 @@ segmentLoop out formatter = do
                             , getYellowFormatter = wrapFgColor "#ffff00" bareFormatter
                             , getDefaultFormatter = wrapFgColor (getDefaultColor bareFormatter) bareFormatter
                             }
-    runSegmentLoop out formatter config
+    runSegmentLoop segOut formatter config
 
 data CPUInfo = CPUInfo { numCpus :: !Integer }
 getCpuInfo :: IO CPUInfo
@@ -46,13 +51,16 @@ isProcessorLine :: Text -> Bool
 isProcessorLine line = isJust $ find re line
     where re = regex [] "^processor\\s+: \\d+"
 
-runSegmentLoop :: Formatter f => MVar Text -> f -> SegmentConfig f -> IO ()
-runSegmentLoop out formatter config = do
+runSegmentLoop :: Formatter f => SegmentOutput -> f -> SegmentConfig f -> IO ()
+runSegmentLoop segOut formatter config = do
     load <- getLoad
     let output = format formatter $ renderOutput config load
-    putMVar out output
+        SegmentOutput (notifier, out) = segOut
+    atomically $ do
+        writeTVar out output
+        putTMVar notifier ()
     threadDelay $ 1000 * 1000 -- 1 second
-    runSegmentLoop out formatter config
+    runSegmentLoop segOut formatter config
 
 data Load = Load { load1 :: !Double
                  , load5 :: !Double

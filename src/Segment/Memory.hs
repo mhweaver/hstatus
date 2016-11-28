@@ -20,28 +20,36 @@ data SegmentConfig f = SegConfig {
                                , getHigherFormatter  :: f
                                , getHighestFormatter :: f
                                }
-newMemorySegment :: Formatter f => MVar Text -> f -> Segment
-newMemorySegment chan formatter = Segment $ memSegmentLoop chan config
-    where bareFormatter = bare formatter
-          config = SegConfig
-            { getBaseFormatter    = formatter
-            , getLowFormatter     = wrapFgColor (getDefaultColor bareFormatter) bareFormatter
-            , getHighFormatter    = wrapFgColor "#fff600" bareFormatter
-            , getHigherFormatter  = wrapFgColor "#ffae00" bareFormatter
-            , getHighestFormatter = wrapFgColor "#ff0000" bareFormatter
-            }
+newMemorySegment :: Formatter f => f -> IO Segment
+newMemorySegment formatter = do
+    updateNotifier <- atomically newEmptyTMVar
+    out <- atomically $ newTVar ""
+    let bareFormatter = bare formatter
+        config = SegConfig
+          { getBaseFormatter    = formatter
+          , getLowFormatter     = wrapFgColor (getDefaultColor bareFormatter) bareFormatter
+          , getHighFormatter    = wrapFgColor "#fff600" bareFormatter
+          , getHigherFormatter  = wrapFgColor "#ffae00" bareFormatter
+          , getHighestFormatter = wrapFgColor "#ff0000" bareFormatter
+          }
+        segOut = SegmentOutput (updateNotifier, out)
+    return Segment { runSegment = memSegmentLoop segOut config
+                   , getOutput = segOut }
 
-memSegmentLoop :: Formatter f => MVar Text -- Output channel
+memSegmentLoop :: Formatter f => SegmentOutput
                               -> SegmentConfig f
                               -> IO ()
-memSegmentLoop out config = do
+memSegmentLoop segOut config = do
     memInfo <- getMemInfo
     let total  = memTotal memInfo
         used   = total - (memFree memInfo + cached memInfo + buffers memInfo)
         output = renderOutput used total config
-    putMVar out output
+        SegmentOutput (notifier, out) = segOut
+    atomically $ do
+        writeTVar out output
+        putTMVar notifier ()
     threadDelay $ 5 * 1000 * 1000 -- 5 seconds
-    memSegmentLoop out config
+    memSegmentLoop segOut config
 
 renderOutput :: Formatter f => Integer -> Integer -> SegmentConfig f -> Text
 renderOutput used total config = format (getBaseFormatter config) $

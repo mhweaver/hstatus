@@ -16,21 +16,29 @@ import Text.Printf
 data Sample = InitialSample | Sample { rxBytes :: !Integer, txBytes :: !Integer }
 data Icons = Icons { rxIcon :: Text, txIcon :: Text }
 
-newNetworkSegment :: Formatter f => MVar Text -> f -> Segment
-newNetworkSegment chan formatter = Segment $ networkSegLoop chan formatter icons InitialSample
-    where whiteFg = format (wrapFgColor "#ffffff" $ bare formatter)
-          icons = Icons { rxIcon = whiteFg "\61677" -- \61677 = 
-                        , txIcon = whiteFg "\61678" } -- \61678 = 
+newNetworkSegment :: Formatter f => f -> IO Segment
+newNetworkSegment formatter = do
+    updateNotifier <- atomically newEmptyTMVar
+    out <- atomically $ newTVar ""
+    let whiteFg = format (wrapFgColor "#ffffff" $ bare formatter)
+        icons = Icons { rxIcon = whiteFg "\61677" -- \61677 = 
+                      , txIcon = whiteFg "\61678" } -- \61678 = 
+        segOut = SegmentOutput (updateNotifier, out)
+    return Segment { runSegment = networkSegLoop segOut formatter icons InitialSample
+                   , getOutput = segOut }
 
 interval :: Int
 interval = 2
 
-networkSegLoop :: Formatter f => MVar Text -> f -> Icons -> Sample -> IO ()
-networkSegLoop out formatter icons lastSample = do
+networkSegLoop :: Formatter f => SegmentOutput -> f -> Icons -> Sample -> IO ()
+networkSegLoop segOut formatter icons lastSample = do
     sample <- getSample
-    putMVar out $ format formatter (renderOutput icons lastSample sample)
+    let SegmentOutput (notifier, out) = segOut
+    atomically $ do
+        writeTVar out $ format formatter (renderOutput icons lastSample sample)
+        putTMVar notifier ()
     threadDelay $ interval * 1000 * 1000 -- 2 seconds
-    networkSegLoop out formatter icons sample
+    networkSegLoop segOut formatter icons sample
 
 renderOutput :: Icons -> Sample -> Sample -> Text
 renderOutput _ InitialSample _ = "Unknown"

@@ -23,55 +23,45 @@ main = do
 
     let baseFormatter = newLemonbarFormatter
 
-    stdinChannel <- newEmptyMVar
-    timeChannel <- newEmptyMVar
-    dateChannel <- newEmptyMVar
-    memChannel  <- newEmptyMVar
-    loadChannel <- newEmptyMVar
-    cpuUsageChannel <- newEmptyMVar
-    networkChannel <- newEmptyMVar
-    driveSpaceChannel <- newEmptyMVar
+    -- Build segments
+    stdinSegment <- newStdinSegment die baseFormatter
+    dateSegment <- newDateSegment $ basicFormatter  "#00BAB1" "\61555 " baseFormatter -- \61555 = 
+    timeSegment <- newTimeSegment $ basicFormatter "#66BA00" "\61463 " baseFormatter -- \61463 = 
+    memSegment <- newMemorySegment $ basicFormatter "#BA4700" "\61642 " baseFormatter -- \61642 = 
+    loadSegment <- newLoadSegment $ basicFormatter "#0073BA" "\61568 " baseFormatter -- \61568 = 
+    cpuUsageSegment <- newCpuUsageSegment $ basicFormatter "#0073BA" "\61568 " baseFormatter -- \61568 = 
+    networkSegment <- newNetworkSegment $ basicFormatter "#008079" "\61672 " baseFormatter -- \61672 = 
+    driveSpaceSegment <- newDriveSpaceSegment $ basicFormatter "#999999" "\61600 " baseFormatter -- \61600 = 
 
-    -- Fire up the segments (order doesn't matter here)
-    sequence_ $ forkIO . runSegment <$>
-        [ newStdinSegment stdinChannel die baseFormatter
-        , newDateSegment dateChannel $ basicFormatter  "#00BAB1" "\61555 " baseFormatter -- \61555 = 
-        , newTimeSegment timeChannel $ basicFormatter "#66BA00" "\61463 " baseFormatter -- \61463 = 
-        , newMemorySegment memChannel $ basicFormatter "#BA4700" "\61642 " baseFormatter -- \61642 = 
-        , newLoadSegment loadChannel $ basicFormatter "#0073BA" "\61568 " baseFormatter -- \61568 = 
-        , newCpuUsageSegment cpuUsageChannel $ basicFormatter "#0073BA" "\61568 " baseFormatter -- \61568 = 
-        , newNetworkSegment networkChannel $ basicFormatter "#008079" "\61672 " baseFormatter -- \61672 = 
-        , newDriveSpaceSegment driveSpaceChannel $ basicFormatter "#999999" "\61600 " baseFormatter -- \61600 = 
-        ]
+    -- The segments will appear in the order listed here
+    let leftSegments  = [ stdinSegment ]
+        rightSegments = [ driveSpaceSegment
+                        , networkSegment
+                        , cpuUsageSegment
+                        , loadSegment
+                        , memSegment
+                        , dateSegment
+                        , timeSegment
+                        ]
+
+    -- Fire up the segments
+    sequence_ $ forkIO . runSegment <$> leftSegments ++ rightSegments
 
     -- Set up watchers to notify the main watcher thread that something happened
-    -- The segments will appear in the order listed here
-    let leftChannels  = [ stdinChannel ]
-        rightChannels = [ driveSpaceChannel
-                        , networkChannel
-                        , cpuUsageChannel
-                        , loadChannel
-                        , memChannel
-                        , dateChannel
-                        , timeChannel
-                        ]
-    sequence_ $ fmap
-        (\chan -> forkIO $ forever (readMVar chan >> putMVar wakeUp ()))
-        (leftChannels ++ rightChannels)
+    let watchSegment seg = forkIO . forever $ atomically (takeTMVar notifier) >> tryPutMVar wakeUp ()
+            where SegmentOutput (notifier, _) = getOutput seg
+    sequence_ . fmap watchSegment $ leftSegments ++ rightSegments
 
     -- Watch the channels for updates
-    let initialLefts  = fmap (\seg -> (seg, "")) leftChannels
-        initialRights = fmap (\seg -> (seg, "")) rightChannels
-        formatters = Formatters { leftF = align LeftAlign baseFormatter
+    let formatters = Formatters { leftF = align LeftAlign baseFormatter
                                 , rightF = align RightAlign baseFormatter
                                 , firstScreen = monitor "f" baseFormatter
                                 , lastScreen = monitor "l" baseFormatter }
     forkIO $ watchForUpdates
-                initialLefts
-                initialRights
+                leftSegments
+                rightSegments
                 outChannel
                 wakeUp
-                ""
                 formatters
 
     -- Watch the output channel and print to stdout, flushing after every write
@@ -86,30 +76,24 @@ data Formatters f = Formatters { leftF :: f
                                , lastScreen :: f
                                }
 
-watchForUpdates :: Formatter f =>
-                   [(MVar Text, Text)] -- (segment output channel, prev output from channel)
-                -> [(MVar Text, Text)] -- Right channels
-                -> MVar Text           -- Output channel
-                -> MVar ()             -- Wake up semaphore
-                -> Text                -- Previously outputted value
-                -> Formatters f        -- Formatters (duh)
-                -> IO ()
-watchForUpdates lefts rights out wakeUp oldOut fs = do
+watchForUpdates :: Formatter f => [Segment]    -- Left segments
+                               -> [Segment]    -- Right segments
+                               -> MVar Text    -- Output channel
+                               -> MVar ()      -- Wake up semaphore
+                               -> Formatters f -- Formatters (duh)
+                               -> IO ()
+watchForUpdates lefts rights out wakeUp fs = do
     takeMVar wakeUp
-    let getUpdatedOutputs = fmap (\(chan, oldValue) -> do
-                                      maybeUpdate <- tryTakeMVar chan
-                                      return $ case maybeUpdate of
-                                          Nothing -> (chan, oldValue)
-                                          Just d -> (chan, d))
+    let getUpdatedOutputs = fmap (\seg -> atomically $ do
+                                          let SegmentOutput (_, out) = getOutput seg
+                                          readTVar out)
     updatedLefts  <- sequence $ getUpdatedOutputs lefts
     updatedRights <- sequence $ getUpdatedOutputs rights
-    let leftOut  = intercalate "  " . fmap snd $ updatedLefts
-        rightOut = intercalate "  " . fmap snd $ updatedRights
+    let leftOut  = intercalate "  " updatedLefts
+        rightOut = intercalate "  " updatedRights
         outString = format (leftF fs) leftOut `mappend` "  " `mappend` format (rightF fs) rightOut
         outToBothMonitors = format (firstScreen fs) outString `mappend` format (lastScreen fs) outString
+    putMVar out outToBothMonitors
 
-    when (outString /= oldOut) $ -- Only output if something changed
-        putMVar out outToBothMonitors
-
-    watchForUpdates updatedLefts updatedRights out wakeUp outString fs
+    watchForUpdates lefts rights out wakeUp fs
 

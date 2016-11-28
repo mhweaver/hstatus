@@ -5,7 +5,6 @@ module Segment.CPUUsage
 
 import Segment
 import Formatter hiding (zip, filter, find)
-import Control.Concurrent
 import Text.Printf
 import Data.Text.ICU
 import Data.Maybe
@@ -20,22 +19,31 @@ data SegmentConfig f = Config { redFg :: f
                               , defaultFg :: f
                               }
 
-newCpuUsageSegment :: Formatter f => MVar Text -> f -> Segment
-newCpuUsageSegment chan formatter = Segment $ runUsageLoop chan formatter config
-    where bareFormatter = bare formatter
-          config = Config { redFg = wrapFgColor "#aa0000" bareFormatter
-                          , orangeFg = wrapFgColor "#ee7600" bareFormatter
-                          , defaultFg = wrapFgColor (getDefaultColor bareFormatter) bareFormatter
-                          }
+newCpuUsageSegment :: Formatter f => f -> IO Segment
+newCpuUsageSegment formatter = do
+    updateNotifier <- atomically newEmptyTMVar
+    out <- atomically $ newTVar ""
+    let bareFormatter = bare formatter
+        config = Config { redFg = wrapFgColor "#aa0000" bareFormatter
+                        , orangeFg = wrapFgColor "#ee7600" bareFormatter
+                        , defaultFg = wrapFgColor (getDefaultColor bareFormatter) bareFormatter
+                        }
+        segOut = SegmentOutput (updateNotifier, out)
+    return Segment { runSegment = runUsageLoop segOut formatter config
+                   , getOutput = segOut
+                   }
 
-runUsageLoop :: Formatter f => MVar Text -> f -> SegmentConfig f -> IO ()
-runUsageLoop out formatter config = do
+runUsageLoop :: Formatter f => SegmentOutput -> f -> SegmentConfig f -> IO ()
+runUsageLoop segOut formatter config = do
     samples0 <- getSamples
     threadDelay $ 3 * 1000 * 1000 -- 3 seconds
     samples1 <- getSamples
     let percentages = getPercentages $ zip samples0 samples1
-    putMVar out . format formatter $ renderOutput config percentages
-    runUsageLoop out formatter config
+        SegmentOutput (notifier, out) = segOut
+    atomically $ do
+        writeTVar out . format formatter $ renderOutput config percentages
+        putTMVar notifier ()
+    runUsageLoop segOut formatter config
 
 renderOutput :: Formatter f => SegmentConfig f -> [Float] -> Text
 renderOutput config percentages = unwords $ fmap renderSinglePercentage percentages

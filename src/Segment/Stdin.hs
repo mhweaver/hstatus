@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Segment.Stdin
     ( newStdinSegment
     ) where
@@ -10,13 +11,21 @@ import Formatter
 import Control.Monad
 import Control.Concurrent
 
-newStdinSegment :: Formatter f => MVar Text -> MVar () -> f -> Segment
-newStdinSegment outChan dieChan formatter = Segment $ stdinLoop outChan dieChan formatter
+newStdinSegment :: Formatter f => MVar () -> f -> IO Segment
+newStdinSegment dieChan formatter = do
+    updateNotifier <- atomically newEmptyTMVar
+    out <- atomically $ newTVar ""
+    let segOut = SegmentOutput (updateNotifier, out)
+    return Segment { runSegment = stdinLoop segOut dieChan formatter
+                   , getOutput = segOut }
 
-stdinLoop :: Formatter f => MVar Text -> MVar () -> f -> IO ()
-stdinLoop out die formatter = do
+stdinLoop :: Formatter f => SegmentOutput -> MVar () -> f -> IO ()
+stdinLoop segOut die formatter = do
     eof <- isEOF
     when eof $ putMVar die ()
     line <- getLine
-    putMVar out $ format formatter line
-    stdinLoop out die formatter
+    let SegmentOutput (notifier, out) = segOut
+    atomically $ do
+        writeTVar out $ format formatter line
+        putTMVar notifier ()
+    stdinLoop segOut die formatter

@@ -9,15 +9,23 @@ import Control.Concurrent
 import System.DiskSpace
 import Text.Printf
 
-newDriveSpaceSegment :: Formatter f => MVar Text -> f -> Segment
-newDriveSpaceSegment chan formatter = Segment $ segLoop chan formatter
+newDriveSpaceSegment :: Formatter f => f -> IO Segment
+newDriveSpaceSegment formatter = do
+    updateNotifier <- atomically newEmptyTMVar
+    out <- atomically $ newTVar ""
+    let segOut = SegmentOutput (updateNotifier, out)
+    return Segment { runSegment = segLoop segOut formatter
+                   , getOutput = segOut }
 
-segLoop :: Formatter f => MVar Text -> f -> IO ()
-segLoop out formatter = do
+segLoop :: Formatter f => SegmentOutput -> f -> IO ()
+segLoop segOut formatter = do
     diskUsage <- getDiskUsage "/"
-    putMVar out . format formatter $ renderOutput formatter diskUsage
+    let SegmentOutput (notifier, out) = segOut
+    atomically $ do
+        writeTVar out . format formatter $ renderOutput formatter diskUsage
+        putTMVar notifier ()
     threadDelay $ 60 * 1000 * 1000 -- 1 minute
-    segLoop out formatter
+    segLoop segOut formatter
 
 renderOutput :: Formatter f => f -> DiskUsage -> Text
 renderOutput formatter usage = free `mappend` "GiB / " `mappend` total `mappend` "GiB (free)"
