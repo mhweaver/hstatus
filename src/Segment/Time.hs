@@ -26,5 +26,5 @@ timeSegLoop segOut formatter = do
     atomically $ do
         writeTVar out $ format formatter formattedTime
         putTMVar notifier ()
-    threadDelay $ 1000 * 1000
+    threadDelay $ 500 * 1000
     timeSegLoop segOut formatter
