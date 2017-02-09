@@ -19,8 +19,9 @@ newDateSegment formatter = do
 
 timeSegLoop :: Formatter f => SegmentOutput -> f -> IO ()
 timeSegLoop segOut formatter = do
+    timezone <- getCurrentTimeZone
     currTime <- getCurrentTime
-    let dateString = pack $ formatTime defaultTimeLocale "%a %_Y-%m-%d" currTime
+    let dateString = pack $ formatTime defaultTimeLocale "%a %_Y-%m-%d" (utcToLocalTime timezone currTime)
         SegmentOutput (notifier, out) = segOut
     atomically $ do
         writeTVar out $ format formatter dateString
